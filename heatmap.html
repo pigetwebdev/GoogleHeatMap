@@ -1,0 +1,244 @@
+<!-- This Html is Created by Stefan Y on 21/1/2019 -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Heatmaps</title>
+    <style>
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        height: 100%;
+      }
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #floating-panel {
+        position: absolute;
+        top: 10px;
+        left: 25%;
+        z-index: 5;
+        background-color: #fff;
+        padding: 5px;
+        border: 1px solid #999;
+        text-align: center;
+        font-family: 'Roboto','sans-serif';
+        line-height: 30px;
+        padding-left: 10px;
+      }
+      #floating-panel {
+        background-color: #fff;
+        border: 1px solid #999;
+        left: 25%;
+        padding: 5px;
+        position: absolute;
+        top: 10px;
+        z-index: 5;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="floating-panel">
+      <button  name='btnToggle' onclick="toggleHeatmap()">Hide Heatmap</button>
+      <button onclick="changeGradient()">Change gradient</button>
+      <caption>Change radius</caption>
+      <input type="range" id="myRange" value="40" min = "20" max = "200" onchange="changeRadius()">
+      <button onclick="changeOpacity()">Change opacity</button>
+    </div>
+    <div id="map"></div>
+    <script>
+
+      var map, heatMap1,heatMap2;  //heat1: for + value, heat2: for - value.
+
+      function initMap() {
+        map = new google.maps.Map(document.getElementById('map'), {
+          center: {lat: -30.775, lng: 140.434},
+          zoom: 6,
+          mapTypeId: google.maps.MapTypeId.ROADMAP
+        });
+
+        heatMap1 = new google.maps.visualization.HeatmapLayer({
+          data: getPoints1(),
+          map: map
+        });
+        heatMap2 = new google.maps.visualization.HeatmapLayer({
+          data: getPoints2(),
+          map: map
+        });
+        heatMap1.set('radius', heatMap1.get('radius') ? null : 40);
+        heatMap2.set('radius', heatMap2.get('radius') ? null : 40);
+        changeGradient();
+        show_marker();
+      }
+
+
+      function toggleHeatmap() {
+        heatMap1.setMap(heatMap1.getMap() ? null : map);
+        heatMap2.setMap(heatMap2.getMap() ? null : map);
+        var elem = document.getElementsByName("btnToggle")[0];
+        if (elem.innerText=="Hide Heatmap") elem.innerText = "Show Heatmap";
+        else elem.innerText = "Hide Heatmap";
+        
+      }
+
+      function changeGradient() {
+
+        var gradient2 = [
+          'rgba(0, 0, 255,  0)',
+          'rgba( 20,  20, 255,  1)',
+          'rgba( 31,  31, 255,  1)',
+          'rgba( 91,  91, 255,  1)',
+          'rgba( 63,  63, 255,  1)',
+          'rgba(127, 127, 255,  1)',
+          'rgba(159, 159, 255,  1)',
+          'rgba(191, 191, 255,  1)',
+          'rgba(223, 223, 255,  1)',
+
+        ];
+        var gradient1 = [
+          'rgba(255, 0, 0,   0)',
+          'rgba(255,  20,  20, 1)',
+          'rgba(255,  31,  31, 1)',
+          'rgba(255,  91,  91, 1)',
+          'rgba(255,  63,  63, 1)',
+          'rgba(255, 127, 127, 1)',
+          'rgba(255, 159, 159, 1)',
+          'rgba(255, 191, 191, 1)',
+          'rgba(255, 223, 223, 1)',
+        ]
+
+
+
+        heatMap1.set('gradient', heatMap1.get('gradient') ? null : gradient1);
+        heatMap2.set('gradient', heatMap2.get('gradient') ? null : gradient2);
+      }
+
+      function changeRadius() {
+        var x = document.getElementById("myRange").value;
+        console.log(x);        
+        heatMap1.set('radius',  x);
+        heatMap2.set('radius',  x);
+      }
+
+      function changeOpacity() {
+        heatMap1.set('opacity', heatMap1.get('opacity') ? null : 0.5);
+        heatMap2.set('opacity', heatMap2.get('opacity') ? null : 0.5);
+      }
+
+      function show_marker() {
+        var point = getMapdata();
+        var iconBase = 'http://maps.google.com/mapfiles/ms/icons/';
+        var iconPlus = iconBase+'blue-dot.png';
+        var iconMinus = iconBase+'red-dot.png';
+
+        point.forEach(function(data,index){
+          var measle = new google.maps.Marker({
+            position: new google.maps.LatLng(data.lat, data.lng),
+            map: map,
+            icon: {
+              url: "https://maps.gstatic.com/intl/en_us/mapfiles/markers2/measle.png",
+              size: new google.maps.Size(7, 7),
+              anchor: new google.maps.Point(4, 4)
+            }
+          });          
+          var marker = new google.maps.Marker({
+            position: new google.maps.LatLng(data.lat, data.lng),
+            map: map,
+            icon: {
+              url: data.weight < 0 ? iconPlus : iconMinus,
+              labelOrigin: new google.maps.Point(75, 32),
+              size: new google.maps.Size(32,32),
+              anchor: new google.maps.Point(16,32)
+            },
+            label: {
+              text: data.title + '('+data.weight+')',
+              color: data.weight < 0? "#0E20C7":"#C70E20",
+              fontWeight: "bold",
+//              fontsize: "16px"
+            },
+            title: data.title + '('+data.weight+')'
+          });
+        });
+      }
+
+      function getPoints1() {
+        var point = getMapdata();
+        var heatMapData = [];
+        point.forEach(function(data,index){
+          if(data.weight >= 0)
+          heatMapData.push({location: new google.maps.LatLng(data.lat, data.lng), weight: data.weight*2});
+        });
+        return heatMapData;
+      }
+      function getPoints2() {
+        var point = getMapdata();
+        var heatMapData = [];
+        point.forEach(function(data,index){
+          if(data.weight < 0)
+          heatMapData.push({location: new google.maps.LatLng(data.lat, data.lng), weight: Math.abs(data.weight*2)});
+        });
+        return heatMapData;
+      }
+
+      function getMapdata(){
+        return [
+            { title:'STN_01',lat:-37.737837,  lng:140.387826,   weight:-1.0232  }, 
+            { title:'STN_02',lat:-33.159165,  lng:151.541665,   weight:-1.0031  }, 
+            { title:'STN_03',lat:-38.256497,  lng:146.573862,   weight:-1.0266  }, 
+            { title:'STN_04',lat:-42.376134,  lng:146.511716,   weight:-1.0066  }, 
+            { title:'STN_05',lat:-16.866135,  lng:145.687427,   weight:-1.01    },
+            { title:'STN_06',lat:-36.414757,  lng:148.598055,   weight:-1.0204  }, 
+            { title:'STN_07',lat:-32.6419462, lng:152.2191166,  weight:-1.0266  }, 
+            { title:'STN_08',lat:-32.6419462, lng:152.2191166,  weight:-1.0266  }, 
+            { title:'STN_09',lat:-27.4107338, lng:152.9298235,  weight:0.702    },
+            { title:'STN_10',lat:-27.4107338, lng:152.9298235,  weight:0.7296   },
+            { title:'STN_11',lat:-27.540978,  lng:152.785858,   weight:0.7331   },
+            { title:'STN_12',lat:-33.8199214, lng:151.0251479,  weight:0.7296   },
+            { title:'STN_13',lat:-34.315532,  lng:146.109415,   weight:-1.01    },
+            { title:'STN_14',lat:-19.2158372, lng:146.6017645,  weight:0.7296   },
+            { title:'STN_15',lat:-41.734468,  lng:145.530973,   weight:-1.2102  }, 
+            { title:'STN_16',lat:-41.734468,  lng:145.530973,   weight:-1.0266  }, 
+            { title:'STN_17',lat:-41.734468,  lng:145.530973,   weight:-1.2102  }, 
+            { title:'STN_18',lat:-41.065705,  lng:145.9141,     weight:-1.0066  }, 
+            { title:'STN_19',lat:-29.20312,   lng:151.328863,   weight:0.098    },
+            { title:'STN_20',lat:-36.558056,  lng:147.523611,   weight:0.1294   },
+            { title:'STN_21',lat:-17.80065,   lng:145.526573,   weight:-1.2137  }, 
+            { title:'STN_22',lat:-34.8253347, lng:138.5994602,  weight:-1.0266  }, 
+            { title:'STN_23',lat:-23.928688,  lng:151.344285,   weight:0.7365   },
+            { title:'STN_24',lat:-35.398285,  lng:148.245403,   weight:-1.0301  }, 
+            { title:'STN_25',lat:-32.348097,  lng:149.461399,   weight:-1.0232  }, 
+            { title:'STN_26',lat:-32.399458,  lng:150.946099,   weight:-1.0066  }, 
+            { title:'STN_27',lat:-34.853092,  lng:138.538448,   weight:-1.0301  }, 
+            { title:'STN_28',lat:-27.7289911, lng:153.2218301,  weight:-1.0266  }, 
+            { title:'STN_29',lat:-34.9036605, lng:138.689206,   weight:-1.01    },
+            { title:'STN_30',lat:-34.9561197, lng:138.7446791,  weight:-1.0204  }, 
+            { title:'STN_31',lat:-35.29909,   lng:148.20365,    weight:-1.0169  }, 
+            { title:'STN_32',lat:-35.29909,   lng:148.20365,    weight:-1.0169  }, 
+            { title:'STN_33',lat:-41.81696,   lng:145.65044,    weight:-1.0266  }, 
+            { title:'STN_34',lat:-41.81696,   lng:145.65044,    weight:-1.0266  }, 
+            { title:'STN_35',lat:-41.9836597, lng:146.7922296,  weight:-1.0031  }, 
+            { title:'STN_36',lat:-37.693699,  lng:145.009929,   weight:0.1296   },
+            { title:'STN_37',lat:-37.693699,  lng:145.009929,   weight:0.1295   },
+            { title:'STN_38',lat:-34.8418323, lng:138.5307516,  weight:-1.0266  }, 
+            { title:'STN_39',lat:-41.335767,  lng:146.306969,   weight:-1.2102  }, 
+            { title:'STN_40',lat:-27.583291,  lng:153.070379,   weight:0.7331   },
+            { title:'STN_41',lat:-34.8620683, lng:138.5112856,  weight:0.1328   },
+            { title:'STN_42',lat:-32.712119,  lng:151.327661,   weight:-1.0266  }, 
+            { title:'STN_43',lat:-33.8199214, lng:151.0251479,  weight:0.7296   },
+            { title:'STN_44',lat:-34.8620683, lng:138.5112856,  weight:0.7331   },
+            { title:'STN_45',lat:-34.9906737, lng:138.5976662,  weight:0.1279   },
+            { title:'STN_46',lat:-41.787296,  lng:146.990205,   weight:-1.2102  }, 
+            { title:'STN_47',lat:-36.225549,  lng:148.144271,   weight:-1.0204  }, 
+            { title:'STN_48',lat:-33.687471,  lng:150.921484,   weight:-1.0031  },            
+        ]
+      }
+    </script>
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDzpcCGlxmYKB1n9GmOG-l6TxP3HVZG0Y8&libraries=visualization&callback=initMap">
+    </script>
+  </body>
+</html>
